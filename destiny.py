@@ -1,10 +1,9 @@
-import logging
 import destiny.main.etl.load as load
 import destiny.main.etl.extract as extract
 import destiny.settings as settings
 from destiny.main.bdd import clean_database, create_tables
 from destiny.main.bdd.connexion import engine, Session
-from destiny.utils import stream_handler
+from destiny.main.destinylogger import db_log
 
 
 def extract_data(p_session):
@@ -16,14 +15,13 @@ def extract_data(p_session):
     matches = extract.extract_matches(p_session, settings.NB_MATCHES_NEEDED)
     db_log.info("Loading match entries into the local database.")
     load.load_data(p_session, matches)
+    db_log.info("Extracting timeline entries from riot-games API.")
     timelines = extract.extract_timelines(p_session)
+    db_log.info("Loading timeline entries into the local database.")
     load.load_timelines(p_session, timelines)
 
 if __name__ == '__main__':
 
-    db_log = logging.getLogger("db_logger")
-    db_log.addHandler(stream_handler)
-    db_log.setLevel(logging.DEBUG)
     clean_database(engine, p_force=True)
     create_tables(engine)
     extract_data(Session)
